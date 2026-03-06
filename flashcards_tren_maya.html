@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcards – Tren Maya</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --green: #1a4a2e;
+    --gold: #c8a84b;
+    --cream: #f5f0e8;
+    --dark: #0f2118;
+    --light-green: #2d6e47;
+    --card-bg: #ffffff;
+    --shadow: 0 8px 40px rgba(15,33,24,0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    min-height: 100vh;
+    color: var(--cream);
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(26,74,46,0.4) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(200,168,75,0.12) 0%, transparent 50%);
+  }
+
+  header {
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    border-bottom: 1px solid rgba(200,168,75,0.25);
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 4vw, 2.6rem);
+    color: var(--gold);
+    letter-spacing: 0.02em;
+  }
+
+  header p {
+    font-size: 0.9rem;
+    color: rgba(245,240,232,0.55);
+    margin-top: 0.4rem;
+    font-weight: 300;
+  }
+
+  /* Topic selector */
+  .topic-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .topic-btn {
+    background: rgba(26,74,46,0.35);
+    border: 1px solid rgba(200,168,75,0.3);
+    color: var(--cream);
+    border-radius: 99px;
+    padding: 0.45rem 1rem;
+    font-size: 0.78rem;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .topic-btn:hover, .topic-btn.active {
+    background: var(--gold);
+    color: var(--dark);
+    border-color: var(--gold);
+    font-weight: 500;
+  }
+
+  /* Progress */
+  .progress-bar-wrap {
+    max-width: 600px;
+    margin: 0 auto 0.5rem;
+    padding: 0 1.5rem;
+  }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: rgba(245,240,232,0.5);
+    margin-bottom: 0.4rem;
+  }
+  .progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+
+  /* Card area */
+  .card-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem 1rem;
+    perspective: 1200px;
+  }
+
+  .card-wrapper {
+    width: 100%;
+    max-width: 580px;
+    height: 320px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .card-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .card-wrapper.flipped .card-inner {
+    transform: rotateY(180deg);
+  }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 18px;
+    padding: 2.2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+
+  .card-front {
+    background: var(--card-bg);
+    color: var(--dark);
+  }
+
+  .card-back {
+    background: var(--green);
+    color: var(--cream);
+    transform: rotateY(180deg);
+    border: 1px solid rgba(200,168,75,0.4);
+  }
+
+  .card-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    opacity: 0.45;
+  }
+
+  .card-front .card-label { color: var(--green); }
+  .card-back .card-label { color: var(--gold); }
+
+  .card-num {
+    position: absolute;
+    top: 1rem;
+    right: 1.4rem;
+    font-size: 0.72rem;
+    opacity: 0.35;
+    font-weight: 500;
+  }
+
+  .card-text {
+    font-size: clamp(1rem, 2.2vw, 1.22rem);
+    font-weight: 400;
+    line-height: 1.55;
+    max-width: 90%;
+  }
+
+  .card-front .card-text { color: var(--dark); }
+
+  .flip-hint {
+    margin-top: 1.4rem;
+    font-size: 0.75rem;
+    opacity: 0.35;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 1rem 2rem;
+  }
+
+  .ctrl-btn {
+    background: rgba(26,74,46,0.45);
+    border: 1px solid rgba(200,168,75,0.3);
+    color: var(--cream);
+    border-radius: 99px;
+    padding: 0.7rem 1.8rem;
+    font-size: 0.9rem;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .ctrl-btn:hover:not(:disabled) {
+    background: rgba(26,74,46,0.8);
+    border-color: var(--gold);
+  }
+
+  .ctrl-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .ctrl-btn.primary {
+    background: var(--gold);
+    color: var(--dark);
+    border-color: var(--gold);
+    font-weight: 500;
+  }
+
+  .ctrl-btn.primary:hover {
+    background: #d4b05a;
+    border-color: #d4b05a;
+  }
+
+  /* Shuffle badge */
+  .shuffle-btn {
+    background: transparent;
+    border: 1px solid rgba(200,168,75,0.25);
+    color: rgba(245,240,232,0.5);
+    border-radius: 99px;
+    padding: 0.45rem 1rem;
+    font-size: 0.78rem;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 0.3rem;
+  }
+
+  .shuffle-btn:hover { color: var(--gold); border-color: var(--gold); }
+
+  /* Swipe hint on mobile */
+  @media (max-width: 500px) {
+    .card-wrapper { height: 280px; }
+    .card-face { padding: 1.6rem 1.4rem; }
+  }
+
+  /* card entrance animation */
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card-area { animation: cardIn 0.35s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Flashcards · Tren Maya</h1>
+  <p>Curso de Inducción del Sistema Ferroviario</p>
+</header>
+
+<div class="topic-bar" id="topicBar"></div>
+
+<div class="progress-bar-wrap">
+  <div class="progress-info">
+    <span id="progressText">Tarjeta 1 de 10</span>
+    <span id="topicName"></span>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<div class="card-area">
+  <div class="card-wrapper" id="card" onclick="flipCard()">
+    <div class="card-inner" id="cardInner">
+      <div class="card-face card-front">
+        <div class="card-label">Pregunta</div>
+        <div class="card-num" id="cardNum"></div>
+        <div class="card-text" id="questionText"></div>
+        <div class="flip-hint">↻ Haz clic para ver la respuesta</div>
+      </div>
+      <div class="card-face card-back">
+        <div class="card-label">Respuesta</div>
+        <div class="card-text" id="answerText"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn" id="prevBtn" onclick="prevCard()">← Anterior</button>
+  <button class="ctrl-btn primary" onclick="flipCard()" id="flipBtn">Voltear</button>
+  <button class="ctrl-btn" id="nextBtn" onclick="nextCard()">Siguiente →</button>
+  <button class="shuffle-btn" onclick="shuffleCards()">⇄ Mezclar</button>
+</div>
+
+<script>
+const data = {
+  "Constitución del Tren Maya S.A. de C.V.": [
+    ["¿Cuál es el principal objetivo del Tren Maya como empresa?", "Prestar servicios de transporte ferroviario y promover el turismo en el sureste de México."],
+    ["¿Qué significa que el Tren Maya esté constituido como Sociedad Anónima de Capital Variable (S.A. de C.V.)?", "Que permite la entrada y salida de inversionistas sin modificar su estructura legal."],
+    ["¿Cuál de los siguientes elementos NO forma parte del Manual de Organización General del Tren Maya?", "Estrategia de publicidad y marketing."],
+    ["¿Qué propósito tiene el Programa Anual de Trabajo del Tren Maya?", "Definir metas y acciones concretas para evaluar el desempeño de la empresa."],
+    ["¿Qué documento brinda sustento legal a la constitución de la empresa y establece la filosofía empresarial del Tren Maya?", "Manual de Organización General."],
+    ["¿Qué factor influyó en la desaparición de los ferrocarriles nacionales en México?", "La competencia con el transporte automotriz."],
+    ["¿Cómo busca el Tren Maya contribuir al desarrollo del sureste de México?", "A través de la mejora del transporte, el turismo y el crecimiento económico."],
+    ["¿Cuál es una de las razones por las que el Tren Maya se considera un proyecto prioritario?", "Porque generará beneficios económicos y sociales en el sureste del país."],
+    ["¿Cómo se asegura el Tren Maya de operar dentro del marco legal?", "Mediante concesiones, permisos y autorizaciones del Gobierno Federal."],
+    ["¿Qué característica distingue al Tren Maya de otros proyectos ferroviarios en México?", "Su objetivo es mejorar el desarrollo sostenible en el sureste del país."]
+  ],
+  "Generalidades del Sistema Ferroviario": [
+    ["¿Qué es el Tren Maya?", "Es un nuevo servicio de transporte ferroviario que interconectará las principales ciudades y zonas turísticas de la península de Yucatán."],
+    ["¿Por cuántos estados pasa el Tren Maya?", "5 estados."],
+    ["¿Cuántos y cuáles son los modelos de Tren que existen?", "3 modelos: Regular, Larga Distancia y Restaurante (turista)."],
+    ["¿Cuántos y cuáles son los Servicios Ferroviarios que tiene el Tren Maya?", "2 tipos: de Pasajeros y de Carga."],
+    ["¿Cuál es uno de los beneficios del servicio ferroviario de pasajeros?", "Reducir el tiempo de viaje."],
+    ["¿Cómo se llama el edificio localizado en Mérida, Yucatán?", "Edificio de la Dirección General."],
+    ["¿Cuántas estaciones tiene el Tren Maya?", "34 estaciones."],
+    ["¿En dónde se ubica el Edificio Técnico Operativo y de Capacitación?", "En Cancún, Quintana Roo."],
+    ["¿En qué ciudad del país mexicano se realizó el ensamblado de vagones?", "Ciudad Sahagún, Hidalgo."],
+    ["¿De cuántos tramos está conformado el Tren Maya?", "7 tramos."]
+  ],
+  "Infraestructura de Vías Férreas": [
+    ["¿Cuáles son los componentes de las vías?", "Infraestructura y superestructura."],
+    ["Es un subsistema que conforma el Sistema Ferroviario.", "Telecomunicaciones."],
+    ["¿Cuál es un componente de la superestructura?", "Durmientes."],
+    ["Es parte de una obra de drenaje superficial en vías ferroviarias.", "Cunetas."],
+    ["¿Cuáles son las obras de fábrica bajo vía para resolver el cruce de plataforma?", "Obras Transversales Longitudinal circular y tipo marco."],
+    ["¿Cuál es el componente imprescindible de cualquier infraestructura férrea?", "Viaducto."],
+    ["¿A qué se le denomina Viaducto?", "Puente construido sobre la depresión del terreno para el paso del ferrocarril."],
+    ["¿Qué es el Balasto?", "Material de origen volcánico, que se coloca sobre la corona de terracería, debajo y entre durmientes."],
+    ["¿Cuál es la función de los durmientes?", "Distribuir la carga de las ruedas del ferrocarril al balasto y al lecho de la vía."],
+    ["¿Qué nombre recibe el riel que no ha sido usado y se debe identificar con pintura blanca?", "Riel Nuevo."]
+  ],
+  "Red de Distribución Eléctrica": [
+    ["¿Cuántas obras debe desarrollar la CFE para la alimentación eléctrica de la vía electrificada?", "53 obras."],
+    ["¿Cuál es el porcentaje de vía férrea electrificada?", "46%."],
+    ["¿Qué obras complementarias se llevarán a cabo para el reforzamiento de energía en la península de Yucatán?", "Central Generadora de Energía Eléctrica de Mérida y Valladolid."],
+    ["¿Cuál es la función de las Subestaciones Eléctricas de Tracción (SETs)?", "Suministrar la fuerza eléctrica para alimentar el sistema eléctrico del tren."],
+    ["¿A qué se le denomina Línea Aérea de Contacto?", "Conjunto de conductores aéreos que transmiten la energía y alimentan a los vehículos de tracción ferroviaria mediante el pantógrafo."],
+    ["¿Cuáles son los tipos de tensores seleccionados para el Sistema Ferroviario Tren Maya?", "De poleas y de resorte."],
+    ["¿Cuál es el tipo de catenaria del proyecto de electrificación del Tren Maya?", "Catenaria Flexible."],
+    ["¿Por qué el descentramiento de la Línea Aérea de Contacto está diseñado en zig-zag?", "Para evitar el desgaste puntual del pantógrafo."],
+    ["¿Qué provee de energía a las locomotoras de tracción eléctrica?", "El sistema de electrificación."],
+    ["¿Qué es el cantón?", "Es la longitud de la catenaria entre dos puntos de anclaje."]
+  ],
+  "Habilidades Gerenciales": [
+    ["¿Cuál es la definición de Gerencia?", "Proceso de trabajar con el personal para lograr los objetivos de la empresa a través de la toma de decisiones efectivas y la coordinación de los recursos disponibles."],
+    ["Nombra 3 de los puestos que forman parte de la Gerencia.", "Operativos técnicos, enlaces y jefaturas."],
+    ["¿Qué es una competencia?", "Desempeño real en el que el trabajador muestra dominio en una determinada tarea y cuyo resultado es un producto o servicio valioso para el consumidor."],
+    ["¿Cuáles son los elementos que conforman una competencia?", "Conocimiento, Habilidades y Actitudes."],
+    ["¿Qué es el conocimiento?", "Información que el individuo posee en su mente, relacionada con hechos, procedimientos, conceptos, interpretaciones, ideas, observaciones y juicios."],
+    ["¿Qué es una destreza?", "Capacidad de transformar el conocimiento en acción y que resulta en un desempeño deseado."],
+    ["¿Qué es la actitud?", "Estado de disposición mental organizado, que ejerce una influencia directa en el comportamiento de una persona en su día a día."],
+    ["¿Cuáles son los componentes de la actitud?", "Conductual, emocional y cognitivo."],
+    ["¿Cuáles son los 3 tipos de habilidades?", "Técnicas, personales y conceptuales."],
+    ["¿Qué es el liderazgo?", "Capacidad de influir en otros para alcanzar objetivos organizacionales."]
+  ],
+  "Responsabilidades del Servidor Público": [
+    ["¿A qué se le denomina Honradez?", "Evitar conflictos de interés y corrupción."],
+    ["¿En qué principio fundamental se establece la justificación de decisiones y resultados?", "En la rendición de cuentas."],
+    ["¿Qué es ser servidor público?", "Persona que desempeña un cargo, empleo o comisión en cualquier nivel de gobierno."],
+    ["¿Cuáles son algunos marcos normativos que rigen a los servidores públicos?", "Constitución Política de los Estados Unidos Mexicanos, Ley General de Responsabilidades Administrativas y Ley Federal de Transparencia y Acceso a la Información."],
+    ["¿Qué elementos son parte de las Normas Administrativas Internas?", "Reglamentos, manuales, circulares y oficios."],
+    ["¿Cuál es el objeto de la Ley General de Responsabilidades Administrativas?", "Establece los principios y obligaciones que rigen la actuación de los Servidores públicos."],
+    ["¿Qué tipos de faltas administrativas existen?", "Graves y No graves."],
+    ["¿Qué es la rendición de cuentas?", "Mecanismo mediante el cual los servidores públicos deben informar, justificar y asumir responsabilidades por sus acciones, decisiones y uso de recursos públicos."],
+    ["¿Por qué es relevante la transparencia como servidores públicos?", "Es un pilar de nuestra labor, ya que garantiza que las decisiones y acciones del gobierno sean visibles, accesibles y claras."],
+    ["¿Cuál es una propiedad del Sistema de Control Interno Institucional?", "Proporciona un método para identificar y analizar los riesgos."]
+  ],
+  "Infraestructura de Inmuebles": [
+    ["¿Qué dios Maya está representado en el logotipo del Tren Maya?", "El Dios Kukulcán."],
+    ["¿A qué se le llama estación?", "Constituye el punto físico de interacción del sistema ferroviario con sus clientes."],
+    ["¿Qué elementos se encuentran en las estaciones?", "Taquillas, máquinas de venta automática, pantallas de llegadas y salidas."],
+    ["¿Por qué las estaciones se clasifican en tipo A y Tipo B?", "Para su planeación, administración y control."],
+    ["¿Cuáles son los tipos de usuarios en una estación?", "Visitante, colaborador, turista y pasajero."],
+    ["¿Cuál es la experiencia de tipo turística?", "El usuario al llegar a la estación se encuentra con un entorno impregnado por la cultura y naturaleza de las atracciones de la localidad."],
+    ["¿Qué es un taller?", "Instalación donde se almacenan, mantienen y utilizan los equipos y herramientas para la reparación, ajuste y ensamblaje al material rodante."],
+    ["¿Cuál es el lugar donde se resguarda el material rodante y se da mantenimiento menor?", "Cochera."],
+    ["¿Qué se concentra en el cuarto técnico?", "La señalización en las vías, las comunicaciones del tren, así como la energización de estos mismos."],
+    ["¿Cuál es la función principal del local de señalización?", "Recibir las señales de los equipos instalados en las vías, como balizas, semáforos y contadores de ejes."]
+  ],
+  "Equipo Ferroviario de Carga": [
+    ["¿Qué es un camión bivial?", "Un vehículo con la capacidad de circular tanto por caminos convencionales como por vías férreas."],
+    ["¿Qué funciones realiza un Shunter dentro de un taller ferroviario?", "Mover trenes dentro de los talleres, permitiendo la movilización de vagones separados o trenes completos."],
+    ["¿Qué es una tolva granelera?", "Un tipo de contenedor especializado en el transporte de productos agroindustriales."],
+    ["¿Qué es una tolva cementera?", "Un tipo de contenedor diseñado para el transporte de cemento, con estructura pensada para proteger el producto durante el traslado."],
+    ["¿Qué es una góndola?", "Un tipo de carro descubierto utilizado para el transporte de materiales que no requieren protección contra las condiciones ambientales."],
+    ["¿Qué es un carrotanque?", "Un tipo de vehículo diseñado específicamente para el transporte de combustibles y lubricantes."],
+    ["¿Qué equipo es eléctrico y también se puede manejar con control remoto?", "Los Shunter."],
+    ["¿En qué carro se puede transportar mercancía de cadena fría?", "Furgón."],
+    ["¿Para qué se utiliza la tolva granelera?", "Para mover productos a granel, como café, maíz o trigo."],
+    ["¿Qué característica tienen los productos que transporta el carro tolva granelera?", "Que no son de consumo humano, a menos que se les dé un tratamiento posterior."]
+  ],
+  "Equipo Ferroviario de Pasajeros": [
+    ["¿Cuáles son los tipos de servicio de pasajeros que ofrecerá el Tren Maya?", "Regular, Restaurante y Larga Distancia."],
+    ["¿Qué función tiene un Powerpack en los trenes?", "Proporcionar la energía eléctrica necesaria para alimentar el motor eléctrico."],
+    ["¿Dónde se ubican los bogies de motor o bogies de tracción?", "En la cabina donde se ubica el maquinista."],
+    ["¿Cuál es la capacidad de combustible de 1 Powerpack?", "1,000 litros de combustible."],
+    ["¿Cuántos carros se pueden encontrar en el servicio de tren regular?", "4 y 7 carros."],
+    ["¿Cuáles son las tres maneras de distinguir las configuraciones del Tren Maya?", "Por el tipo de servicio que presta, por el número de carros y por los equipos que tienen instalados para dar tracción al tren."],
+    ["¿Qué configuraciones existen con relación al equipo de tracción del tren?", "Tipo Diésel y Eléctrico."],
+    ["¿Cómo se caracteriza el Tren Regular?", "Tiene asientos reclinables, cómodos y similares a los asientos ADO, cuenta un área Premier y mayor capacidad de pasajeros."],
+    ["¿Cuáles son las características del Tren Restaurante?", "Está acondicionado para dar servicio de restaurante, tiene cocinas y habrá mesas para 4 y 2 personas."],
+    ["¿Qué caracteriza al Tren de Larga Distancia?", "Cuenta con camarotes con baño completo y asiento (se convierte en litera), asientos como el tren regular y espacios similares a los de tipo restaurante."]
+  ],
+  "Relaciones Laborales": [
+    ["¿Cuál es la definición de cultura según la RAE?", "Conjunto de modos de vida y costumbres, conocimientos y grado de desarrollo artístico, científico, industrial, en una época, grupo social, etc."],
+    ["¿Cuál es el resultado de la evaluación anual del Clima Laboral?", "Programa de Transformación de Clima y Cultura Organizacional."],
+    ["¿Cuáles son algunos elementos culturales en Tren Maya?", "Disciplina, Sentido de urgencia y Adaptación al Cambio."],
+    ["¿Qué significa el concepto 'Espíritu de Cuerpo'?", "Unión del soldado con su unidad, lo que permite alcanzar la victoria."],
+    ["¿Qué es el Nombramiento?", "Un acto administrativo por el que se designa a una persona para ocupar un cargo o función en la administración pública."],
+    ["¿Qué es el D y P?", "Descriptivo y Perfil de Puesto."],
+    ["¿Qué documento se debe realizar para salir de algún centro de trabajo Tren Maya, en horario laboral?", "Pase de Salida."],
+    ["¿A qué se refiere la frase 'Conciliación de la vida laboral, familiar y personal'?", "Capacidad de equilibrar las responsabilidades profesionales con las personales y familiares."],
+    ["¿Cuáles son algunos beneficios de conciliar la vida laboral, familiar y personal?", "Mejorar el bienestar, calidad de vida y aumentar la motivación."],
+    ["¿Qué NO corresponde a una estrategia efectiva de gestión del tiempo?", "Análisis FODA."]
+  ],
+  "Derechos Humanos y No Discriminación": [
+    ["¿Qué son los derechos humanos?", "Son el conjunto de derechos y libertades fundamentales para el disfrute de la vida humana."],
+    ["¿Cuáles son algunos derechos de los servidores públicos?", "Una jornada laboral conforme a la ley y capacitación constante."],
+    ["¿Cuáles son algunos motivos de discriminación?", "La homofobia, discriminación racial o misoginia."],
+    ["¿Cuál es el objeto de la Ley General Para la Igualdad entre Mujeres y Hombres?", "Regular y garantizar la igualdad de oportunidades y de trato entre mujeres y hombres."],
+    ["¿Qué es la igualdad sustantiva?", "Es el acceso al mismo trato y oportunidades para el reconocimiento, goce o ejercicio de los derechos humanos."],
+    ["¿Cuál es la herramienta de análisis que permite comprender las posiciones desiguales entre mujeres y hombres a partir de diferencias genitales?", "Perspectiva de género."],
+    ["¿A qué se le llama Hostigamiento Sexual?", "El ejercicio del poder en una relación de subordinación real de la víctima frente al agresor en los ámbitos laborales."],
+    ["¿Cuál es la forma de violencia en la que no existe subordinación, pero sí hay un ejercicio abusivo de poder?", "Acoso Sexual."],
+    ["¿Por qué se construyen desigualdades?", "Por los mensajes culturales mediante los cuales la sociedad determina cómo deben ser y comportarse mujeres y hombres."],
+    ["¿Cuáles son las consecuencias de la discriminación?", "La desigualdad, violencia y afectación a la dignidad humana."]
+  ],
+  "Cuidado y Resguardo de Información Digital": [
+    ["¿Qué es la seguridad de la información?", "Conjunto de medidas, políticas, prácticas y controles que protegen la información."],
+    ["¿Cuáles características son conocidas como 'La Triada de la Seguridad de la Información'?", "Confidencialidad, Integridad y Disponibilidad."],
+    ["¿Cuál característica de la Triada asegura que la información esté completa, correcta y no haya sido alterada de manera no autorizada?", "Integridad."],
+    ["¿Cuáles son algunos tipos en que se clasifican las amenazas informáticas?", "Activas e internas."],
+    ["¿Cuál de estas amenazas es considerada una Amenaza de Ingeniería Social?", "Phishing."],
+    ["Término genérico que se refiere a cualquier tipo de software malicioso diseñado con el propósito de dañar.", "Malware."],
+    ["¿Cuál contraseña cumple con los requisitos mínimos para ser segura?", "Tren_Maya24* (combina mayúsculas, minúsculas, números y símbolo especial)."],
+    ["Si un correo te pide que actualices tu contraseña de inmediato, ¿qué es lo más seguro?", "Ir directamente al sitio web de la empresa y cambiar la contraseña desde ahí."],
+    ["¿Los teléfonos móviles pueden ser tan vulnerables como los equipos de cómputo?", "Sí, pueden ser hackeados con facilidad."],
+    ["¿Qué acción es adecuada para evitar el acceso no autorizado a tu correo electrónico?", "Activar la autenticación de dos pasos (2FA)."]
+  ],
+  "Sistemas ERTMS y RAMS": [
+    ["¿Qué es una Unidad Reemplazable en Línea (LRU)?", "Un equipo que se puede reemplazar de forma rápida y sencilla en el lugar donde opera."],
+    ["¿Cuál de las siguientes opciones NO es una característica de una LRU?", "Diseño complejo que requiere personal altamente especializado."],
+    ["¿Qué significa la 'M' en el acrónimo RAMS?", "Mantenibilidad: la capacidad de reparar o devolver un equipo a su estado óptimo."],
+    ["¿Qué significa Fiabilidad (Reliability)?", "La capacidad de funcionar sin fallos durante un tiempo determinado."],
+    ["¿Cuál es la definición de 'Disponibilidad (Availability)'?", "La capacidad de un sistema para hallarse en situación de realizar una función requerida, durante un intervalo de tiempo señalado."],
+    ["¿Qué es el sistema ERTMS?", "Es un sistema automático de control de trenes."],
+    ["¿Cómo funciona el Sistema ERTMS?", "Mide y lee la información adelantada del siguiente cantón y controla la velocidad de forma automática."],
+    ["¿Qué indicaciones ofrece el Sistema ERTMS?", "Disminuya su velocidad, que debe detenerse, o que tiene que seguir su paso."],
+    ["¿Cuál es la característica de interoperabilidad?", "La capacidad de que un tren recorra tramos de vías dotados con la misma tecnología y nivel de ERTMS de cualquier lugar."],
+    ["¿Qué función tiene el subsistema Protección Automática de Trenes (ATP)?", "El frenado por la liberación del freno de emergencia de un tren al rebasar una señal en rojo."]
+  ],
+  "Control, Mando y Señalización": [
+    ["¿Cuál es el concepto básico de todo sistema de seguridad ferroviaria?", "Los trenes no deben colisionar entre sí; no se les permite ocupar la misma sección de la vía a la vez."],
+    ["¿Qué es cantón?", "Es un tramo de vía férrea en el que normalmente no puede haber más de un tren."],
+    ["¿Cómo se dividen las líneas férreas?", "En secciones, llamadas cantones o secciones de vía."],
+    ["¿Para qué las estaciones cuentan con vías adicionales?", "Para poder descansar o estacionar a los trenes."],
+    ["¿Qué se puede ver en la sección de la vía?", "Distintos cantones."],
+    ["¿Qué función tiene un Puesto de Mando?", "La supervisión automática de la circulación de los trenes."],
+    ["¿Cuál es la definición de señalética?", "Es una disciplina centrada en el estudio y análisis de técnicas comunicativas dirigidas a la creación de señales."],
+    ["¿Cuál es el objetivo del sistema de señalización?", "Proporcionar la seguridad en el movimiento de los trenes."],
+    ["¿Qué es una señal de ferrocarril?", "Es un dispositivo que indica a los maquinistas del tren el estado de disponibilidad del tren."],
+    ["¿Quién provee señales tipo led?", "El Subsistema de Señalamiento."]
+  ],
+  "Redacción de Documentación Militar": [
+    ["¿Cuál es el margen que debe llevar cada documento?", "4.5 cm por el lado izquierdo y 1.5 cm por los otros tres lados."],
+    ["¿A qué se refiere parrafeo?", "Es la técnica de identificación de párrafos, subpárrafos, incisos, subincisos, fracciones, subfracciones, etc."],
+    ["Nombra dos de los cinco tipos de documentos que se elaboran en Tren Maya S.A. de C.V.", "Oficio, oficio intersecretarial, Mensaje C.E.I., Mensaje F.C.A., Memorándum y Tarjeta Informativa."],
+    ["¿Cuál es la clasificación de la documentación militar por su prioridad?", "Ordinario, urgente y extra-urgente."],
+    ["¿Cuáles son los datos que contiene el cuadro de referencias de un Mensaje C.E.I.?", "Número, hoja, fecha y referencia."],
+    ["¿Cuáles son las palabras para iniciar el texto de una documentación?", "Por disposición del…, En relación con mi…, En cumplimiento a…"],
+    ["¿Qué expresiones se utilizan en las copias?", "Para su conocimiento; Para su conocimiento y mismo texto; Para su conocimiento y efectos; Para su superior conocimiento."],
+    ["¿Qué expresión utiliza el remitente cuando el documento es dirigido a un superior?", "Respetuosamente."],
+    ["¿Cuál es la palabra que utiliza el remitente cuando el documento es dirigido a una persona del mismo rango o inferior?", "Atentamente."],
+    ["¿En qué orden se coloca la rúbrica al final del documento del lado izquierdo?", "De izquierda a derecha de mayor a menor grado de puesto."]
+  ],
+  "Operación del Tren Maya": [
+    ["¿A qué se le denomina operación?", "Ejecución de una acción, procedimientos y serie de actividades para cumplir con un objetivo de crear bienes y/o servicios."],
+    ["¿Qué es la Operación Ferroviaria?", "Toda actividad y procedimiento relacionado con el transporte ferroviario."],
+    ["¿Qué ley se aplica para el Sistema Ferroviario?", "Ley Reglamentaria del Servicio Ferroviario."],
+    ["¿Para qué sirve la Malla Ferroviaria?", "Evitar colisiones y garantizar un flujo seguro de trenes."],
+    ["¿Qué es un Servicio?", "Prestación que satisface alguna necesidad humana y que no consiste en la producción de bienes materiales."],
+    ["¿Qué es la Infraestructura Ferroviaria?", "Son los elementos que están vinculados a las vías principales y a las vías de servicio."],
+    ["¿Qué es el Equipo Ferroviario?", "Son los vagones, coches, locomotoras y otros vehículos utilizados en el transporte ferroviario."],
+    ["¿A qué servicio público de transporte ferroviario está destinado al porte de bienes, incluyendo el servicio de arrastre de vehículos de terceros?", "Servicio de carga."],
+    ["¿Qué dirección se encarga de realizar la revisión del tren, antes de salir a recorrido?", "Mantenimiento de Equipo Ferroviario."],
+    ["¿Con qué debe contar el personal que opere el Equipo Ferroviario?", "Licencia Digital Federal Ferroviaria."]
+  ],
+  "Sistema de Seguridad": [
+    ["¿Qué hace la red de datos multiservicio?", "Proporciona la infraestructura de electrónica de red que constituye la red lógica sobre la que se enruta todo el tráfico de red de los distintos subsistemas."],
+    ["¿Cuántos subsistemas conforman la red dorsal de comunicaciones?", "7 subsistemas."],
+    ["¿Qué subsistemas conforman la red dorsal de comunicaciones?", "Videovigilancia, telefonía e interfonía, control de acceso, sonorización y voceo, cronometría, grabación de audio y teleindicadores."],
+    ["¿Qué hace el subsistema de videovigilancia?", "Permitir a operadores obtener información visual, identificar y detectar lo que sucede en la infraestructura a controlar."],
+    ["¿Qué hace el subsistema de telefonía?", "Proporcionar la comunicación de voz bidireccional con fines operativos, de mantenimiento, de interfonía y de emergencia."],
+    ["¿Qué hace el subsistema de teleindicadores?", "Proporcionar a los usuarios información en tiempo real sobre la circulación de trenes e informar sobre el tiempo de espera hasta la llegada del próximo tren."],
+    ["¿Qué es la cronometría en los sistemas ferroviarios?", "Es un entramado complejo de señales, control de tráfico y coordinación entre múltiples estaciones y trenes en movimiento."],
+    ["¿Qué es un NTP?", "Protocolo diseñado para sincronizar el tiempo de los dispositivos en una red mediante la comunicación con servidores de tiempo dedicados."],
+    ["¿Cuál es una de las funciones de los medios guiados?", "Constituir sistemas troncales de alta capacidad, la interconexión de los distintos sistemas y las comunicaciones con puestos de control centralizados."],
+    ["¿Cómo funciona un sistema troncalizado?", "Se crean grupos de usuarios independientes de los canales; cuando un usuario desea comunicarse, el sistema le asigna automáticamente un canal libre o lo pone en cola de espera."]
+  ],
+  "Productos y Servicios del Tren Maya": [
+    ["¿Qué precios se manejan en el Tren Maya?", "Local, Nacional, Internacional y Especial."],
+    ["¿Qué significa Xiinbal?", "Es una palabra Maya que significa 'caminar'."],
+    ["¿Qué servicio exclusivo se encuentra a bordo del tren?", "Un bistró (restaurante pequeño)."],
+    ["¿Qué servicio se incluye al comprar un boleto Premier, a partir de los 70 km?", "El servicio de Catering, donde hay diversidad de bebidas y bocadillos."],
+    ["¿Cuáles son las diferencias entre la clase Turista y Premier?", "Turista NO incluye alimentos; Premier incluye catering a partir de 70 km, asiento 10 cm más ancho, descansabrazos forrados, almohadilla ajustable y mayor espacio para piernas."],
+    ["¿Cuáles son los puntos de venta del sistema de boletaje?", "Taquilla en estaciones y corporativo, aplicaciones móviles, página web y portal de Tour operadores."],
+    ["¿Cuántos Hoteles Tren Maya hay y cuáles son?", "6: Palenque, Nuevo Uxmal, Edzná, Chichen Itzá, Tulum y Calakmul."],
+    ["¿Qué significa CATVIS y para qué sirven?", "Centro de Atención a Visitantes. Impulsan la experiencia turística informando y promoviendo las riquezas culturales, gastronómicas y arqueológicas alrededor de la ruta del Tren Maya."],
+    ["¿Cuáles son los Productos Comerciales Tren Maya?", "Boletos, Servicios a bordo, Locales comerciales, Tiendas Tren Maya, Espacios publicitarios, Estacionamientos, Servicio de carga y Paquetes turísticos."],
+    ["¿Cuáles son los Parques Nacionales y su ubicación?", "Parque de la Plancha en Mérida, Yuc.; Parque de Nuevo Uxmal en Santa Elena, Yuc.; Parque del Jaguar en Tulum, Q. Roo."]
+  ],
+  "Seguridad e Higiene en el Trabajo": [
+    ["¿Cuál es el propósito principal de la Seguridad e Higiene?", "Prevenir accidentes y enfermedades laborales."],
+    ["¿Qué es un riesgo laboral?", "Una condición o acción que pueda causar daño a un trabajador."],
+    ["¿Qué se puede hacer si se detecta una zona de trabajo con condiciones físicas peligrosas?", "Reportar la situación y adoptar medidas preventivas inmediatas."],
+    ["¿Cuál es la función principal de una brigada interna?", "Responder a emergencias internas y minimizar riesgos."],
+    ["¿Qué tipos de brigadas internas existen en una empresa?", "De primeros auxilios, contra incendios, evacuación, y comunicación."],
+    ["¿Qué elementos básicos debe incluir un plan de protección civil?", "Medidas de prevención, protocolos de respuesta y recuperación."],
+    ["¿Qué es la protección civil?", "Conjunto de acciones para prevenir y responder emergencias."],
+    ["¿Qué es una incidencia laboral?", "Un evento que interrumpe o afecta el desarrollo normal de las actividades."],
+    ["¿Cuál es la primera acción ante una incidencia laboral?", "Informar al responsable de seguridad."],
+    ["¿Qué comprende la seguridad física en el entorno laboral?", "Las medidas adoptadas para proteger a los empleados de riesgos físicos, materiales y ambientales."]
+  ],
+  "Aspectos Básicos de la Contabilidad Gubernamental": [
+    ["¿Qué es la contabilidad gubernamental?", "Es un sistema que registra, clasifica, interpreta y resume las transacciones financieras del gobierno."],
+    ["¿Por qué es fundamental para el sector público?", "Porque permite tomar decisiones, rendir cuentas y fiscalizar los recursos públicos."],
+    ["¿Cuál es una de las normativas que rigen la Contabilidad Gubernamental?", "Ley General de Contabilidad Gubernamental."],
+    ["¿Qué contiene la Ley General de Contabilidad Gubernamental?", "Información contable, presupuestaria, programática y análisis de indicadores de postura fiscal."],
+    ["¿Cuál es la función de la Ley General de Contabilidad Gubernamental?", "Facilitar el registro y fiscalización y contribuir a medir la eficiencia del ejercicio de los recursos."],
+    ["¿A qué se refiere Ciclo Presupuestal?", "Es un proceso periódico que consiste en la elaboración, ejecución y control de los presupuestos públicos."],
+    ["¿Qué es la cuenta pública?", "Es un documento técnico con información extensa y detallada sobre los ingresos y egresos de la Federación durante el ejercicio."],
+    ["¿Cuál es el propósito del Clasificador Programático?", "Apreciar los recursos financieros que se requieren para adquirir los recursos reales."],
+    ["¿Cuáles son las etapas del Ciclo Presupuestario?", "Planeación, Programación, Presupuesto, Ejercicio y control, Seguimiento, Evaluación y Rendición de cuentas."],
+    ["¿Cuál es la Unidad Responsable del Tren Maya?", "HOM."]
+  ],
+  "Capacidad de Red y Regulación de Tráfico": [
+    ["¿Qué es la regulación del tráfico?", "Es un conjunto de elementos que sirven para regular, vigilar, controlar y gestionar las circulaciones de trenes."],
+    ["¿Qué se realiza en el Puesto de Mando o de Control?", "Se toman decisiones y se ejecutan órdenes adecuadas para el funcionamiento fiable y eficiente del ferrocarril."],
+    ["¿Con cuántos Puestos de Control Central cuenta el Tren Maya?", "Con 1 PCC."],
+    ["¿Qué es un Telemando?", "Es una acción que permite realizar la operación remota de una máquina, dispositivo o elemento de un sistema, mediante el mando a distancia."],
+    ["¿Qué es una actividad que realiza el Control de Tráfico Central (CTC)?", "Monitoreo y control de equipos en tiempo real."],
+    ["¿Cómo se define la Capacidad de Red?", "El número de trenes por hora circulando a la máxima velocidad que permite la línea, por sus características constructivas."],
+    ["¿Qué capacidad corresponde a la diferencia entre la capacidad usada y la capacidad práctica?", "Capacidad Disponible."],
+    ["¿Qué contiene un plan de operaciones?", "Un cálculo de los servicios de transporte con horario y destino."],
+    ["¿Para qué sirve un plan de operaciones?", "Circular en una infraestructura."],
+    ["¿Qué aporta un plan de explotación?", "Un cálculo inicial de necesidades de material rodante y de personas necesarias para la operación."]
+  ]
+};
+
+const topics = Object.keys(data);
+let currentTopic = 0;
+let currentCards = [];
+let currentIndex = 0;
+let isFlipped = false;
+
+function buildTopicBar() {
+  const bar = document.getElementById('topicBar');
+  topics.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'topic-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = t;
+    btn.onclick = () => selectTopic(i);
+    bar.appendChild(btn);
+  });
+}
+
+function selectTopic(i) {
+  currentTopic = i;
+  currentCards = [...data[topics[i]]];
+  currentIndex = 0;
+  isFlipped = false;
+  document.querySelectorAll('.topic-btn').forEach((b, j) => b.classList.toggle('active', j === i));
+  render();
+}
+
+function render() {
+  const card = document.getElementById('card');
+  const total = currentCards.length;
+  isFlipped = false;
+  card.classList.remove('flipped');
+
+  document.getElementById('questionText').textContent = currentCards[currentIndex][0];
+  document.getElementById('answerText').textContent = currentCards[currentIndex][1];
+  document.getElementById('cardNum').textContent = `${currentIndex + 1} / ${total}`;
+  document.getElementById('progressText').textContent = `Tarjeta ${currentIndex + 1} de ${total}`;
+  document.getElementById('topicName').textContent = topics[currentTopic];
+  document.getElementById('progressFill').style.width = `${((currentIndex + 1) / total) * 100}%`;
+  document.getElementById('prevBtn').disabled = currentIndex === 0;
+  document.getElementById('nextBtn').disabled = currentIndex === total - 1;
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('card').classList.toggle('flipped', isFlipped);
+}
+
+function nextCard() {
+  if (currentIndex < currentCards.length - 1) { currentIndex++; render(); }
+}
+
+function prevCard() {
+  if (currentIndex > 0) { currentIndex--; render(); }
+}
+
+function shuffleCards() {
+  for (let i = currentCards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [currentCards[i], currentCards[j]] = [currentCards[j], currentCards[i]];
+  }
+  currentIndex = 0;
+  render();
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') nextCard();
+  if (e.key === 'ArrowLeft') prevCard();
+  if (e.key === ' ') { e.preventDefault(); flipCard(); }
+});
+
+buildTopicBar();
+selectTopic(0);
+</script>
+</body>
+</html>
